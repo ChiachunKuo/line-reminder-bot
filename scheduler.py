@@ -35,6 +35,6 @@ def start_scheduler():
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Taipei'))
 
     # 每天下午 15:00 執行
-    scheduler.add_job(send_reminder, 'cron', hour=15, minute=0)
+    scheduler.add_job(send_reminder, 'cron', hour=16, minute=0)
 
     scheduler.start()
