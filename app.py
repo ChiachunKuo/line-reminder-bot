@@ -1,8 +1,10 @@
 from flask import Flask, request, abort
-from linebot import WebhookHandler, LineBotApi
+from linebot import LineBotApi, WebhookHandler
+from linebot.models import MessageEvent, TextMessage
 from linebot.exceptions import InvalidSignatureError
 import os
 from scheduler import start_scheduler
+from storage import add_user, add_group
 
 app = Flask(__name__)
 
@@ -13,7 +15,6 @@ handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 def home():
     return "Bot is running"
 
-# ✅ 這個就是 LINE Webhook（關鍵）
 @app.route("/callback", methods=['POST'])
 def callback():
     signature = request.headers.get('X-Line-Signature')
@@ -24,7 +25,16 @@ def callback():
     except InvalidSignatureError:
         abort(400)
 
-    return 'OK'   # ✅ 一定要回 200
+    return 'OK'
+
+# 🔥 自動記錄 ID
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    if event.source.type == "user":
+        add_user(event.source.user_id)
+
+    elif event.source.type == "group":
+        add_group(event.source.group_id)
 
 # 啟動排程
 start_scheduler()
