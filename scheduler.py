@@ -25,8 +25,7 @@ def send_reminder():
 季家：
 佳峻：
 彥呈：
-欣雯：
-"""
+欣雯："""
 
     # 發送給所有好友
     for user in data["users"]:
@@ -46,5 +45,5 @@ def send_reminder():
 
 def start_scheduler():
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Taipei'))
-    scheduler.add_job(send_reminder, 'cron', hour=19, minute=45)
+    scheduler.add_job(send_reminder, 'cron', hour=20, minute=00)
     scheduler.start()
