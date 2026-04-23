@@ -17,18 +17,15 @@ def send_reminder():
     data = get_all()
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 
-    msg = f"""
-📢 明日回報提醒
-
-📅 日期：{tomorrow}
-
-請準備：
-1️⃣ 今日完成事項
-2️⃣ 問題與困難
-3️⃣ 明日計畫
-4️⃣ 是否需要支援
-
-請提前準備 ✅
+    msg = f""" 明日是否在營及事故回報：
+造賓：
+佳真：受訓
+宗旂：
+培昇：
+季家：
+佳峻：
+彥呈：
+欣雯：
 """
 
     # 發送給所有好友
@@ -49,5 +46,5 @@ def send_reminder():
 
 def start_scheduler():
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Taipei'))
-    scheduler.add_job(send_reminder, 'cron', hour=18, minute=50)
+    scheduler.add_job(send_reminder, 'cron', hour=19, minute=30)
     scheduler.start()
