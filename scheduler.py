@@ -45,5 +45,5 @@ def send_reminder():
 
 def start_scheduler():
     scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Taipei'))
-    scheduler.add_job(send_reminder, 'cron', hour=19, minute=30)
+    scheduler.add_job(send_reminder, 'cron', hour=20, minute=00)
     scheduler.start()
