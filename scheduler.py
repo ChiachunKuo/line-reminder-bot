@@ -25,7 +25,7 @@ def send_reminder():
 季家：
 佳峻：
 彥呈：
-欣雯："""
+欣雯： """
 
     # 發送給所有好友
     for user in data["users"]:
