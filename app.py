@@ -31,17 +31,15 @@ def trigger():
     data = get_all()
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 
-    msg = f"""
-📢 明日回報提醒
-
-📅 日期：{tomorrow}
-
-請準備：
-1️⃣ 今日完成事項
-2️⃣ 遇到問題
-3️⃣ 明日計畫
-4️⃣ 是否需要協助
-"""
+    msg = f"""明日是否在營及事故回報：
+造賓：
+佳真：受訓
+宗旂：
+培昇：
+季家：
+佳峻：
+彥呈：
+欣雯："""
 
     # 發送給好友
     for user in data["users"]:
