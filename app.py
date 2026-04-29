@@ -41,6 +41,7 @@ def trigger():
 彥呈：
 欣雯："""
 
+    
     # 發送給好友
     for user in data["users"]:
         try:
