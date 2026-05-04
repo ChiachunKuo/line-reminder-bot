@@ -70,7 +70,7 @@ def send_job():
     data = load_data()
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 
-    msg = ff"""明日是否在營及事故回報：
+    msg = f"""明日是否在營及事故回報：
 造賓：
 佳真：受訓
 宗旂：
