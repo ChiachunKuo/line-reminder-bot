@@ -71,7 +71,7 @@ def send_job():
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 
     msg = f"""明日是否在營及事故回報：
-造賓：出國
+造賓：
 佳真：
 宗旂：
 培昇：
