@@ -1,39 +1,4 @@
 {
   "users": [],
-  "groups": [],
-  "last_sent": "",
-  "members": {
-    "造賓": {
-      "text": "",
-      "expire": ""
-    },
-    "佳真": {
-      "text": "",
-      "expire": ""
-    },
-    "宗旂": {
-      "text": "",
-      "expire": ""
-    },
-    "培昇": {
-      "text": "",
-      "expire": ""
-    }
-    "季家": {
-      "text": "",
-      "expire": ""
-    }
-    "佳峻": {
-      "text": "",
-      "expire": ""
-    }
-    "彥呈": {
-      "text": "",
-      "expire": ""
-    }
-    "欣雯": {
-      "text": "",
-      "expire": ""
-    }
-  }
+  "groups": []
 }
