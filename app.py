@@ -259,9 +259,7 @@ def home():
 @app.route("/trigger")
 def trigger():
 
-    threading.Thread(
-        target=send_job
-    ).start()
+    send_job()
 
     return "triggered", 200
 
