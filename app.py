@@ -259,9 +259,15 @@ def home():
 @app.route("/trigger")
 def trigger():
 
-    send_job()
+    try:
 
-    return "triggered", 200
+        send_job()
+
+        return "success", 200
+
+    except Exception as e:
+
+        return str(e), 500
 
 # =====================
 # LINE Webhook
