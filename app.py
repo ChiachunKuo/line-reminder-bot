@@ -23,12 +23,12 @@ handler = WebhookHandler(
 )
 
 # =====================
-# 資料檔案
+# 資料檔
 # =====================
 FILE = "data.json"
 
 # =====================
-# 固定人員名單
+# 固定名單
 # =====================
 DEFAULT_MEMBERS = [
     "造賓",
@@ -46,55 +46,43 @@ DEFAULT_MEMBERS = [
 # =====================
 def load_data():
 
-    default_members = {}
+    members = {}
 
     for name in DEFAULT_MEMBERS:
 
-        default_members[name] = {
+        members[name] = {
             "text": "",
-            "expire": ""
+            "start": "",
+            "expire": "",
+            "show_once": False
         }
 
-    # 第一次建立
     if not os.path.exists(FILE):
 
         return {
             "users": [],
             "groups": [],
-            "members": default_members
+            "members": members
         }
 
     with open(FILE, "r", encoding="utf-8") as f:
 
         data = json.load(f)
 
-    # 若 members 不存在
     if "members" not in data:
 
-        data["members"] = default_members
+        data["members"] = members
 
-    # 新增新成員
     for name in DEFAULT_MEMBERS:
 
         if name not in data["members"]:
 
             data["members"][name] = {
                 "text": "",
-                "expire": ""
+                "start": "",
+                "expire": "",
+                "show_once": False
             }
-
-    # 移除舊成員
-    remove_list = []
-
-    for name in data["members"]:
-
-        if name not in DEFAULT_MEMBERS:
-
-            remove_list.append(name)
-
-    for name in remove_list:
-
-        del data["members"][name]
 
     save_data(data)
 
@@ -141,7 +129,7 @@ def add_group(group_id):
     save_data(data)
 
 # =====================
-# 台灣假日判斷
+# 台灣假日
 # =====================
 tw_holidays = holidays.Taiwan()
 
@@ -152,101 +140,170 @@ def is_tomorrow_workday():
         + datetime.timedelta(days=1)
     )
 
-    # 六日
     if tomorrow.weekday() >= 5:
         return False
 
-    # 國定假日
     if tomorrow in tw_holidays:
         return False
 
     return True
 
 # =====================
-# 每日清空非排程資料
-# 並判斷排程是否到期
+# 判斷是否需要顯示
 # =====================
-def refresh_daily_status():
+def should_show(info):
+
+    today = datetime.date.today()
+
+    tomorrow = today + datetime.timedelta(days=1)
+
+    text = info.get("text", "")
+    start = info.get("start", "")
+    expire = info.get("expire", "")
+    show_once = info.get("show_once", False)
+
+    if text == "":
+        return False
+
+    # =====================
+    # 單日事件
+    # =====================
+    if show_once:
+
+        try:
+
+            target_date = datetime.datetime.strptime(
+                start,
+                "%Y/%m/%d"
+            ).date()
+
+            # 前一天顯示
+            if tomorrow == target_date:
+                return True
+
+            return False
+
+        except:
+            return False
+
+    # =====================
+    # 多日事件
+    # =====================
+    try:
+
+        start_date = datetime.datetime.strptime(
+            start,
+            "%Y/%m/%d"
+        ).date()
+
+        expire_date = datetime.datetime.strptime(
+            expire,
+            "%Y/%m/%d"
+        ).date()
+
+        # 前一天開始
+        show_start = start_date - datetime.timedelta(days=1)
+
+        # 結束前一天停止
+        show_end = expire_date - datetime.timedelta(days=1)
+
+        if show_start <= today <= show_end:
+            return True
+
+        return False
+
+    except:
+        return False
+
+# =====================
+# 清理過期資料
+# =====================
+def clear_expired():
 
     data = load_data()
 
-    tomorrow = (
-        datetime.date.today()
-        + datetime.timedelta(days=1)
-    )
+    today = datetime.date.today()
 
     for name, info in data["members"].items():
 
         expire = info.get("expire", "")
+        start = info.get("start", "")
+        show_once = info.get("show_once", False)
 
-        # =====================
-        # 沒有排程 → 每天清空
-        # =====================
-        if expire == "":
+        # 單日事件
+        if show_once:
 
-            data["members"][name]["text"] = ""
+            try:
 
-            continue
+                target_date = datetime.datetime.strptime(
+                    start,
+                    "%Y/%m/%d"
+                ).date()
 
-        try:
+                if today > target_date:
 
-            expire_date = datetime.datetime.strptime(
-                expire,
-                "%Y/%m/%d"
-            ).date()
+                    data["members"][name] = {
+                        "text": "",
+                        "start": "",
+                        "expire": "",
+                        "show_once": False
+                    }
 
-            # =====================
-            # 重點修正
-            # 前一天回報要清空
-            #
-            # 例如：
-            # 休假至5/25
-            # 5/24回報明日(5/25)時
-            # 就不能再顯示
-            # =====================
-            if tomorrow >= expire_date:
+            except:
+                pass
 
-                data["members"][name]["text"] = ""
-                data["members"][name]["expire"] = ""
+        # 多日事件
+        elif expire:
 
-        except:
+            try:
 
-            data["members"][name]["text"] = ""
-            data["members"][name]["expire"] = ""
+                expire_date = datetime.datetime.strptime(
+                    expire,
+                    "%Y/%m/%d"
+                ).date()
+
+                if today >= expire_date:
+
+                    data["members"][name] = {
+                        "text": "",
+                        "start": "",
+                        "expire": "",
+                        "show_once": False
+                    }
+
+            except:
+                pass
 
     save_data(data)
 
 # =====================
-# 發送每日提醒
+# 發送訊息
 # =====================
 def send_job():
 
-    # 判斷明日是否工作日
     if not is_tomorrow_workday():
 
-        print("⛔ 明日是假日，不發送")
+        print("明日假日，不發送")
 
         return
 
-    # 每日刷新狀態
-    refresh_daily_status()
+    clear_expired()
 
     data = load_data()
 
-    # =====================
-    # 組合訊息
-    # =====================
     msg = "明日是否在營及事故回報：\n"
 
     for name, info in data["members"].items():
 
-        text = info.get("text", "")
+        text = ""
+
+        if should_show(info):
+
+            text = info.get("text", "")
 
         msg += f"\n{name}：{text}"
 
-    # =====================
     # 發送好友
-    # =====================
     for user in data["users"]:
 
         try:
@@ -258,11 +315,9 @@ def send_job():
 
         except Exception as e:
 
-            print("User Error:", e)
+            print(e)
 
-    # =====================
     # 發送群組
-    # =====================
     for group in data["groups"]:
 
         try:
@@ -274,9 +329,9 @@ def send_job():
 
         except Exception as e:
 
-            print("Group Error:", e)
+            print(e)
 
-    print("✅ 發送成功")
+    print("發送完成")
 
 # =====================
 # 首頁
@@ -287,7 +342,7 @@ def home():
     return "OK", 200
 
 # =====================
-# 外部喚醒
+# 喚醒
 # =====================
 @app.route("/wake")
 def wake():
@@ -295,7 +350,7 @@ def wake():
     return "awake", 200
 
 # =====================
-# cron-job 觸發
+# cron-job
 # =====================
 @app.route("/trigger")
 def trigger():
@@ -311,7 +366,7 @@ def trigger():
         return str(e), 500
 
 # =====================
-# LINE Webhook
+# Webhook
 # =====================
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -338,7 +393,7 @@ def callback():
     return 'OK'
 
 # =====================
-# 接收 LINE 訊息
+# 接收訊息
 # =====================
 @handler.add(
     MessageEvent,
@@ -348,9 +403,6 @@ def handle_message(event):
 
     text = event.message.text.strip()
 
-    # =====================
-    # 自動記錄好友/群組
-    # =====================
     if event.source.type == "user":
 
         add_user(event.source.user_id)
@@ -363,7 +415,8 @@ def handle_message(event):
 
     # =====================
     # 格式：
-    # 佳峻：5/20休假至5/25
+    # 小明：6/1休假
+    # 小白：5/28出差至6/2
     # =====================
     match = re.match(
         r"(.+?)：(.+)",
@@ -376,41 +429,59 @@ def handle_message(event):
 
         content = match.group(2).strip()
 
-        # 不在名單內
         if name not in data["members"]:
 
             return
 
+        today_year = datetime.date.today().year
+
         # =====================
-        # 抓取日期
-        # 至5/25
+        # 多日事件
         # =====================
-        date_match = re.search(
-            r"至(\d{1,2})/(\d{1,2})",
+        multi_match = re.search(
+            r"(\d{1,2})/(\d{1,2}).*至(\d{1,2})/(\d{1,2})",
             content
         )
 
-        expire = ""
+        if multi_match:
 
-        if date_match:
+            start_month = int(multi_match.group(1))
+            start_day = int(multi_match.group(2))
 
-            month = int(date_match.group(1))
-            day = int(date_match.group(2))
+            end_month = int(multi_match.group(3))
+            end_day = int(multi_match.group(4))
 
-            year = datetime.date.today().year
+            data["members"][name] = {
+                "text": content,
+                "start": f"{today_year}/{start_month:02d}/{start_day:02d}",
+                "expire": f"{today_year}/{end_month:02d}/{end_day:02d}",
+                "show_once": False
+            }
 
-            expire = (
-                f"{year}/{month:02d}/{day:02d}"
+        else:
+
+            # =====================
+            # 單日事件
+            # =====================
+            single_match = re.search(
+                r"(\d{1,2})/(\d{1,2})",
+                content
             )
 
-        # 更新資料
-        data["members"][name]["text"] = content
+            if single_match:
 
-        data["members"][name]["expire"] = expire
+                month = int(single_match.group(1))
+                day = int(single_match.group(2))
+
+                data["members"][name] = {
+                    "text": content,
+                    "start": f"{today_year}/{month:02d}/{day:02d}",
+                    "expire": "",
+                    "show_once": True
+                }
 
         save_data(data)
 
-        # 回覆
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(
