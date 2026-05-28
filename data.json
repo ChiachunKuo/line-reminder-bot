@@ -4,35 +4,51 @@
   "members": {
     "造賓": {
       "text": "",
-      "expire": ""
+      "start": "",
+      "expire": "",
+      "show_once": false
     },
     "佳真": {
       "text": "",
-      "expire": ""
+      "start": "",
+      "expire": "",
+      "show_once": false
     },
     "宗旂": {
       "text": "",
-      "expire": ""
+      "start": "",
+      "expire": "",
+      "show_once": false
     },
     "培昇": {
       "text": "",
-      "expire": ""
+      "start": "",
+      "expire": "",
+      "show_once": false
     },
     "季家": {
       "text": "",
-      "expire": ""
+      "start": "",
+      "expire": "",
+      "show_once": false
     },
     "佳峻": {
       "text": "",
-      "expire": ""
+      "start": "",
+      "expire": "",
+      "show_once": false
     },
     "彥呈": {
       "text": "",
-      "expire": ""
+      "start": "",
+      "expire": "",
+      "show_once": false
     },
     "欣雯": {
       "text": "",
-      "expire": ""
+      "start": "",
+      "expire": "",
+      "show_once": false
     }
   }
 }
