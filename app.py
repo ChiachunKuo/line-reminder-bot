@@ -1,6 +1,10 @@
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.models import (
+    MessageEvent,
+    TextMessage,
+    TextSendMessage
+)
 from linebot.exceptions import InvalidSignatureError
 
 import os
@@ -8,8 +12,22 @@ import datetime
 import holidays
 import json
 import re
+import pytz
 
 app = Flask(__name__)
+
+# =====================
+# 台灣時間
+# =====================
+taiwan_tz = pytz.timezone(
+    "Asia/Taipei"
+)
+
+def taiwan_now():
+
+    return datetime.datetime.now(
+        taiwan_tz
+    )
 
 # =====================
 # LINE 設定
@@ -129,33 +147,40 @@ def add_group(group_id):
     save_data(data)
 
 # =====================
-# 台灣假日
+# 台灣假日判斷
 # =====================
 tw_holidays = holidays.Taiwan()
 
 def is_tomorrow_workday():
 
     tomorrow = (
-        datetime.date.today()
+        taiwan_now().date()
         + datetime.timedelta(days=1)
     )
 
+    # 星期六日
     if tomorrow.weekday() >= 5:
+
         return False
 
+    # 台灣國定假日
     if tomorrow in tw_holidays:
+
         return False
 
     return True
 
 # =====================
-# 判斷是否需要顯示
+# 判斷是否顯示
 # =====================
 def should_show(info):
 
-    today = datetime.date.today()
+    today = taiwan_now().date()
 
-    tomorrow = today + datetime.timedelta(days=1)
+    tomorrow = (
+        today
+        + datetime.timedelta(days=1)
+    )
 
     text = info.get("text", "")
     start = info.get("start", "")
@@ -167,6 +192,9 @@ def should_show(info):
 
     # =====================
     # 單日事件
+    # 範例：
+    # 小明：6/1休假
+    # 5/31 回報明日才顯示
     # =====================
     if show_once:
 
@@ -177,17 +205,23 @@ def should_show(info):
                 "%Y/%m/%d"
             ).date()
 
-            # 前一天顯示
             if tomorrow == target_date:
+
                 return True
 
             return False
 
         except:
+
             return False
 
     # =====================
     # 多日事件
+    # 範例：
+    # 5/28出差至6/2
+    #
+    # 5/27開始顯示
+    # 6/1停止顯示
     # =====================
     try:
 
@@ -201,18 +235,24 @@ def should_show(info):
             "%Y/%m/%d"
         ).date()
 
-        # 前一天開始
-        show_start = start_date - datetime.timedelta(days=1)
+        show_start = (
+            start_date
+            - datetime.timedelta(days=1)
+        )
 
-        # 結束前一天停止
-        show_end = expire_date - datetime.timedelta(days=1)
+        show_end = (
+            expire_date
+            - datetime.timedelta(days=2)
+        )
 
         if show_start <= today <= show_end:
+
             return True
 
         return False
 
     except:
+
         return False
 
 # =====================
@@ -222,7 +262,7 @@ def clear_expired():
 
     data = load_data()
 
-    today = datetime.date.today()
+    today = taiwan_now().date()
 
     for name, info in data["members"].items():
 
@@ -230,7 +270,9 @@ def clear_expired():
         start = info.get("start", "")
         show_once = info.get("show_once", False)
 
+        # =====================
         # 單日事件
+        # =====================
         if show_once:
 
             try:
@@ -252,7 +294,9 @@ def clear_expired():
             except:
                 pass
 
+        # =====================
         # 多日事件
+        # =====================
         elif expire:
 
             try:
@@ -277,13 +321,13 @@ def clear_expired():
     save_data(data)
 
 # =====================
-# 發送訊息
+# 發送每日回報
 # =====================
 def send_job():
 
     if not is_tomorrow_workday():
 
-        print("明日假日，不發送")
+        print("⛔ 明日是假日，不發送")
 
         return
 
@@ -315,7 +359,7 @@ def send_job():
 
         except Exception as e:
 
-            print(e)
+            print("User Error:", e)
 
     # 發送群組
     for group in data["groups"]:
@@ -329,9 +373,9 @@ def send_job():
 
         except Exception as e:
 
-            print(e)
+            print("Group Error:", e)
 
-    print("發送完成")
+    print("✅ 發送完成")
 
 # =====================
 # 首頁
@@ -342,7 +386,7 @@ def home():
     return "OK", 200
 
 # =====================
-# 喚醒
+# 外部喚醒
 # =====================
 @app.route("/wake")
 def wake():
@@ -350,7 +394,7 @@ def wake():
     return "awake", 200
 
 # =====================
-# cron-job
+# cron-job 觸發
 # =====================
 @app.route("/trigger")
 def trigger():
@@ -366,7 +410,7 @@ def trigger():
         return str(e), 500
 
 # =====================
-# Webhook
+# LINE callback
 # =====================
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -403,6 +447,7 @@ def handle_message(event):
 
     text = event.message.text.strip()
 
+    # 自動記錄
     if event.source.type == "user":
 
         add_user(event.source.user_id)
@@ -433,7 +478,7 @@ def handle_message(event):
 
             return
 
-        today_year = datetime.date.today().year
+        year = taiwan_now().date().year
 
         # =====================
         # 多日事件
@@ -445,16 +490,26 @@ def handle_message(event):
 
         if multi_match:
 
-            start_month = int(multi_match.group(1))
-            start_day = int(multi_match.group(2))
+            start_month = int(
+                multi_match.group(1)
+            )
 
-            end_month = int(multi_match.group(3))
-            end_day = int(multi_match.group(4))
+            start_day = int(
+                multi_match.group(2)
+            )
+
+            end_month = int(
+                multi_match.group(3)
+            )
+
+            end_day = int(
+                multi_match.group(4)
+            )
 
             data["members"][name] = {
                 "text": content,
-                "start": f"{today_year}/{start_month:02d}/{start_day:02d}",
-                "expire": f"{today_year}/{end_month:02d}/{end_day:02d}",
+                "start": f"{year}/{start_month:02d}/{start_day:02d}",
+                "expire": f"{year}/{end_month:02d}/{end_day:02d}",
                 "show_once": False
             }
 
@@ -470,12 +525,17 @@ def handle_message(event):
 
             if single_match:
 
-                month = int(single_match.group(1))
-                day = int(single_match.group(2))
+                month = int(
+                    single_match.group(1)
+                )
+
+                day = int(
+                    single_match.group(2)
+                )
 
                 data["members"][name] = {
                     "text": content,
-                    "start": f"{today_year}/{month:02d}/{day:02d}",
+                    "start": f"{year}/{month:02d}/{day:02d}",
                     "expire": "",
                     "show_once": True
                 }
